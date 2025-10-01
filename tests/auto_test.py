@@ -1,3 +1,4 @@
+# tests/auto_test.py
 import unittest
 import xmlrunner
 import sys
@@ -19,6 +20,7 @@ class TestOpenBMCAPI(unittest.TestCase):
         self.assertEqual(user, "admin")
 
 if __name__ == '__main__':
+    # Генерация отчёта в формате JUnit XML
     with open('auto_test_report.xml', 'wb') as output:
         unittest.main(
             testRunner=xmlrunner.XMLTestRunner(output=output),

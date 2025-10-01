@@ -1,18 +1,28 @@
+// Jenkinsfile
 pipeline {
     agent any
 
+    environment {
+        PYTHONUNBUFFERED = "1"
+    }
+
     stages {
+        stage('Checkout Code') {
+            steps {
+                // Замени URL на свой репозиторий!
+                git branch: 'main', url: 'https://github.com/Grimstrou/openbmc-ci-cd-lab'
+            }
+        }
+
         stage('Start QEMU with OpenBMC') {
             steps {
-                script {
-                    echo '=== Starting QEMU with OpenBMC (simulated) ==='
-                    sh '''
-                        echo "QEMU: Booting OpenBMC image..." > qemu.log
-                        echo "QEMU: OpenBMC started on 127.0.0.1:2200" >> qemu.log
-                        sleep 10
-                        echo "QEMU: System ready." >> qemu.log
-                    '''
-                }
+                sh '''
+                    echo "=== Starting QEMU with OpenBMC (simulation) ==="
+                    echo "[QEMU] Booting OpenBMC image for Romulus platform..." > qemu.log
+                    echo "[QEMU] Kernel loaded. BMC IP: 127.0.0.1, SSH port: 2200" >> qemu.log
+                    echo "[QEMU] System ready in 5 seconds." >> qemu.log
+                    sleep 5
+                '''
             }
             post {
                 always {
@@ -23,65 +33,31 @@ pipeline {
 
         stage('Run Auto Tests') {
             steps {
-                script {
-                    echo '=== Running automated tests ==='
-                    sh '''
-                        python3 -c "
-import unittest
-class TestOpenBMC(unittest.TestCase):
-    def test_api_health(self):
-        self.assertTrue(True)
-    def test_sensor_read(self):
-        self.assertEqual(42, 42)
-if __name__ == '__main__':
-    with open('auto_test_results.xml', 'w') as f:
-        import xmlrunner
-        unittest.main(testRunner=xmlrunner.XMLTestRunner(output='.'), exit=False)
-                        " || echo "Auto tests completed (simulated)"
-                    '''
-                }
+                sh 'python3 tests/auto_test.py'
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'auto_test_results.xml', fingerprint: true
-                    junit 'auto_test_results.xml'
+                    archiveArtifacts artifacts: 'auto_test_report.xml', fingerprint: true
+                    junit 'auto_test_report.xml'
                 }
             }
         }
 
         stage('Run WebUI Tests') {
             steps {
-                script {
-                    echo '=== Running WebUI tests ==='
-                    sh '''
-                        echo "<testsuite tests=\"2\" failures=\"0\" name=\"webui_tests\">" > webui_results.xml
-                        echo "  <testcase classname=\"WebUI\" name=\"test_login\"/>" >> webui_results.xml
-                        echo "  <testcase classname=\"WebUI\" name=\"test_sensor_page\"/>" >> webui_results.xml
-                        echo "</testsuite>" >> webui_results.xml
-                    '''
-                }
+                sh 'python3 tests/webui_test.py'
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'webui_results.xml', fingerprint: true
-                    junit 'webui_results.xml'
+                    archiveArtifacts artifacts: 'webui_test_report.xml', fingerprint: true
+                    junit 'webui_test_report.xml'
                 }
             }
         }
 
         stage('Run Load Testing') {
             steps {
-                script {
-                    echo '=== Running load testing ==='
-                    sh '''
-                        echo "Load Test Report" > load_test_report.txt
-                        echo "----------------" >> load_test_report.txt
-                        echo "Duration: 60s" >> load_test_report.txt
-                        echo "Requests: 1200" >> load_test_report.txt
-                        echo "Errors: 0" >> load_test_report.txt
-                        echo "Avg RPS: 20" >> load_test_report.txt
-                    '''
-                }
+                sh 'python3 tests/load_test.py'
             }
             post {
                 always {
@@ -93,10 +69,10 @@ if __name__ == '__main__':
 
     post {
         success {
-            echo ' CI/CD pipeline completed successfully!'
+            echo '✅ CI/CD pipeline completed successfully!'
         }
         failure {
-            echo ' Pipeline failed!'
+            echo '❌ CI/CD pipeline failed!'
         }
     }
 }

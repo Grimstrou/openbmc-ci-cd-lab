@@ -1,3 +1,4 @@
+# tests/load_test.py
 import time
 import random
 
@@ -9,8 +10,7 @@ def simulate_requests(duration_sec=10, rps=5):
     
     while time.time() - start_time < duration_sec:
         for _ in range(rps):
-            # Имитация запроса: 98% успех, 2% ошибка
-            if random.random() > 0.02:
+            if random.random() > 0.02:  # 98% успех
                 total_requests += 1
             else:
                 errors += 1
@@ -21,14 +21,20 @@ def simulate_requests(duration_sec=10, rps=5):
 if __name__ == '__main__':
     print("=== Starting load test on OpenBMC WebUI ===")
     requests, errors = simulate_requests(duration_sec=15, rps=10)
-    
+    total = requests + errors
+    success_rate = 100 * (requests / total) if total > 0 else 100
+
+    report = f"""OpenBMC Load Test Report
+========================
+Duration: 15 seconds
+Target RPS: 10
+Total requests: {requests}
+Errors: {errors}
+Success rate: {success_rate:.1f}%
+"""
+
     with open('load_test_report.txt', 'w', encoding='utf-8') as f:
-        f.write("OpenBMC Load Test Report\n")
-        f.write("========================\n")
-        f.write(f"Duration: 15 seconds\n")
-        f.write(f"Target RPS: 10\n")
-        f.write(f"Total requests: {requests}\n")
-        f.write(f"Errors: {errors}\n")
-        f.write(f"Success rate: {100 * (1 - errors / (requests + errors)):.1f}%\n")
+        f.write(report)
     
+    print(report)
     print("Load test completed. Report saved to load_test_report.txt")
